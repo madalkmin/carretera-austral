@@ -537,6 +537,20 @@ footer { text-align: center; padding: 30px 16px 50px; font-size: 13px; color: va
 .co-mini { display: none; position: sticky; top: 58px; z-index: 40; justify-content: space-between; align-items: center; padding: 12px 18px; border-radius: 14px; background: var(--navy); color: #fff; text-decoration: none; box-shadow: 0 14px 30px -14px rgba(0, 0, 0, .6); }
 .co-mini span { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--glacier); }
 .co-mini b { font: 800 22px/1 var(--serif); }
+.co-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.co-split > div { padding: 14px; border-radius: 14px; background: rgba(255, 255, 255, .07); }
+.co-split .parc { background: rgba(143, 217, 220, .14); }
+.co-split small { display: block; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: rgba(255, 255, 255, .6); }
+.co-split b { display: block; font: 800 24px/1.1 var(--serif); margin: 4px 0; }
+.co-split span { display: block; font-size: 11px; line-height: 1.35; color: rgba(255, 255, 255, .6); }
+.co-split .parc span { color: var(--glacier); font-weight: 600; font-size: 12px; }
+.pay { display: inline-block; margin-top: 4px; padding: 2px 9px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .25); background: transparent; color: rgba(255, 255, 255, .7); font: 600 10px/1.5 var(--sans); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; transition: all .3s; }
+.pay:hover { border-color: var(--glacier); color: #fff; }
+.co-list li.pz .pay { background: var(--glacier); border-color: var(--glacier); color: var(--navy); }
+.tank { margin: 16px 0 4px; padding: 14px 16px 14px 48px; position: relative; border-radius: 12px; background: #eef6f6; font-size: 14px; color: var(--ink2); }
+.tank::before { content: "⛽"; position: absolute; left: 14px; top: 12px; font-size: 20px; }
+.tank b { color: var(--navy); }
+.fld.full { grid-column: 1 / -1; }
 .fx-fab { position: fixed; z-index: 900; right: 16px; bottom: 16px; padding: 12px 16px; border-radius: 999px; border: 0; background: var(--navy); color: #fff; font: 700 14px var(--sans); cursor: pointer; box-shadow: 0 12px 30px -10px rgba(0, 0, 0, .5); transform: translateY(90px); transition: transform .5s var(--ease); }
 .fx-fab.show { transform: none; }
 .fx-pop { position: fixed; z-index: 901; right: 16px; bottom: 74px; width: min(320px, calc(100vw - 32px)); padding: 18px; border-radius: 20px; background: rgba(11, 42, 56, .96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: #fff; box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .6); animation: pop .4s var(--ease); }

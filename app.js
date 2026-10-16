@@ -317,7 +317,7 @@
     });
     var outros = num("cBalsa") / r / P + num("cSeguro") + num("cChip") + num("cTransf") + num("cOutros");
     var cats = [
-      ["Voo", num("cVoo"), "#0e3b4f"],
+      ["Voo", num("cVoo"), "#5aa9e0"],
       ["Hospedagem", window.hospPP || 0, "#1a9aa0"],
       ["Aluguel do carro", aluguel, "#c8893a"],
       ["Combustível", comb, "#e0a95c", "~" + Math.round(litros) + " L de " + (car.comb === "diesel" ? "diesel" : "gasolina")],
@@ -329,9 +329,17 @@
     cats.push(["Reserva para imprevistos", sub * num("cReserva") / 100, "#b8c4ca", num("cReserva") + "%"]);
     var tot = cats.reduce(function (a, c) { return a + c[1]; }, 0);
     $("#cBar").innerHTML = cats.map(function (c) { return "<i style='flex:" + Math.max(c[1], 0.001) + ";background:" + c[2] + "' title='" + c[0] + "'></i>"; }).join("");
+    var parc = salvo.parc || { "Voo": true, "Hospedagem": true }, vPar = 0;
+    cats.forEach(function (c) { if (parc[c[0]]) vPar += c[1]; });
     $("#cList").innerHTML = cats.map(function (c) {
-      return "<li><span class='dot' style='background:" + c[2] + "'></span><div><b>" + c[0] + "</b>" + (c[3] ? "<small>" + c[3] + "</small>" : "") + "</div><em>" + fmtR(Math.round(c[1])) + "</em><s>" + (tot ? Math.round(100 * c[1] / tot) : 0) + "%</s></li>";
+      var pz = !!parc[c[0]];
+      return "<li class='" + (pz ? "pz" : "") + "'><span class='dot' style='background:" + c[2] + "'></span><div><b>" + c[0] + "</b>" + (c[3] ? "<small>" + c[3] + "</small>" : "") +
+        "<button class='pay' data-c='" + c[0] + "'>" + (pz ? "parcelado" : "à vista") + "</button></div><em>" + fmtR(Math.round(c[1])) + "</em><s>" + (tot ? Math.round(100 * c[1] / tot) : 0) + "%</s></li>";
     }).join("");
+    var nx = Math.max(1, Math.round(num("cParcelas")) || 1);
+    $("#cVista").textContent = fmtR(Math.round(tot - vPar));
+    $("#cParc").textContent = fmtR(Math.round(vPar));
+    $("#cParcX").textContent = vPar ? nx + "x de " + fmtR(Math.round(vPar / nx)) + " por pessoa" : "nada parcelado";
     $("#cTotal2").textContent = "Para " + P + (P > 1 ? " pessoas: " : " pessoa: ") + fmtR(Math.round(tot * P)) + " · ≈ CLP " + Math.round(tot * r).toLocaleString("pt-BR") + " por pessoa";
     $("#cHosp").textContent = fmtR(Math.round(window.hospPP || 0));
     if ($("#cMini")) $("#cMini").textContent = fmtR(Math.round(tot));
@@ -372,6 +380,13 @@
     var ini = salvo.car != null ? salvo.car : Math.max(0, CD.carros.findIndex(function (c) { return c.top; }));
     escolherCarro(ini, salvo.cDiaria == null);
     document.addEventListener("hosp", calcular);
+    $("#cList").addEventListener("click", function (ev) {
+      var b = ev.target.closest(".pay");
+      if (!b) return;
+      salvo.parc = salvo.parc || { "Voo": true, "Hospedagem": true };
+      salvo.parc[b.dataset.c] = !salvo.parc[b.dataset.c];
+      guardar(); calcular();
+    });
   }
 
   /* ---------- mapa ---------- */
