@@ -677,3 +677,59 @@ body[data-rota="norte"] [data-route]:not([data-route~="norte"]) { display: none 
   .nav-rota span { display: none; }
   .nav-rota select { font-size: 13px; padding: 7px 26px 7px 12px; max-width: 175px; }
 }
+
+/* ---------- comparador dos roteiros ---------- */
+.cmpr-sec { padding-top: 70px; }
+.cmpr-wrap { margin-top: 30px; overflow-x: auto; border-radius: var(--r); background: var(--card); box-shadow: 0 1px 0 var(--line), 0 24px 50px -34px rgba(11, 42, 56, .55); scrollbar-width: thin; }
+.cmpr { width: 100%; min-width: 860px; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+.cmpr th, .cmpr td { padding: 14px 16px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+.cmpr tbody th { position: sticky; left: 0; z-index: 2; background: var(--card); width: 170px; font: 600 13px/1.3 var(--sans); color: var(--ink); box-shadow: 1px 0 0 var(--line); }
+.cmpr tbody th small { display: block; font-weight: 400; font-size: 11.5px; color: var(--ink2); margin-top: 3px; }
+.cmpr thead th { padding: 14px 10px 10px; border-bottom: 0; }
+.cmpr thead .corner { position: sticky; left: 0; z-index: 2; background: var(--card); }
+.cmpr-h { position: relative; display: flex; flex-direction: column; justify-content: flex-end; width: 100%; min-height: 118px; padding: 14px; border: 0; border-radius: 14px; overflow: hidden; cursor: pointer; text-align: left; color: #fff; font: inherit;
+  background: linear-gradient(180deg, rgba(11, 42, 56, .05) 20%, rgba(11, 42, 56, .85)), var(--img) center/cover; transition: transform .4s var(--ease), box-shadow .4s; }
+.cmpr-h:hover { transform: translateY(-3px); box-shadow: 0 16px 30px -18px rgba(11, 42, 56, .7); }
+.cmpr-h span { font: 600 10px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase; opacity: .8; margin-bottom: 6px; }
+.cmpr-h b { font: 600 19px/1.1 var(--serif); }
+.cmpr-bd { display: flex; flex-wrap: wrap; gap: 5px; min-height: 22px; margin-top: 8px; }
+.cmpr-bd em { font: 600 10.5px/1 var(--sans); font-style: normal; padding: 5px 8px; border-radius: 999px; background: rgba(26, 154, 160, .12); color: #137a7f; }
+.cmpr-bd em.cheap { background: #6aa86f; color: #fff; }
+.cmpr-bd em[hidden] { display: none; }
+.cmpr td b { display: block; font: 600 18px/1.2 var(--serif); color: var(--ink); }
+.cmpr td small { display: block; font-size: 12px; line-height: 1.4; color: var(--ink2); margin-top: 3px; }
+.cmpr td.cost b { font-size: 26px; color: var(--teal); }
+.cmpr .mbar { display: block; height: 5px; margin-top: 8px; border-radius: 3px; background: linear-gradient(90deg, var(--asf) var(--w), rgba(19, 34, 43, .08) var(--w)); }
+.cmpr .mbar.rip { background: linear-gradient(90deg, var(--rip) var(--w), var(--asf) var(--w)); opacity: .9; }
+.cmpr td.bases ul { margin: 0; padding: 0; list-style: none; font-size: 13px; line-height: 1.55; }
+.cmpr td.bases s { text-decoration: none; display: inline-block; min-width: 18px; text-align: center; font-size: 11px; font-weight: 700; color: #fff; background: var(--navy); border-radius: 999px; padding: 0 5px; margin-left: 2px; }
+.cmpr .yes, .cmpr .no { display: inline-block; font: 600 12px/1 var(--sans); padding: 6px 10px; border-radius: 999px; }
+.cmpr .yes { background: rgba(26, 154, 160, .14); color: #137a7f; }
+.cmpr .no { background: rgba(19, 34, 43, .06); color: var(--ink2); }
+.cmpr .pick-row td, .cmpr .pick-row th { border-bottom: 0; padding-bottom: 18px; }
+.cmpr td, .cmpr thead th[data-col] { transition: background .4s; }
+body[data-rota="anel"] .cmpr [data-col="anel"], body[data-rota="matheus"] .cmpr [data-col="matheus"],
+body[data-rota="tortel"] .cmpr [data-col="tortel"], body[data-rota="norte"] .cmpr [data-col="norte"] { background: rgba(26, 154, 160, .07); }
+body[data-rota="anel"] .cmpr [data-col="anel"] .cmpr-h, body[data-rota="matheus"] .cmpr [data-col="matheus"] .cmpr-h,
+body[data-rota="tortel"] .cmpr [data-col="tortel"] .cmpr-h, body[data-rota="norte"] .cmpr [data-col="norte"] .cmpr-h { box-shadow: 0 0 0 3px var(--teal); }
+body[data-rota="anel"] .cmpr .pick-row [data-col="anel"] .btn::before, body[data-rota="matheus"] .cmpr .pick-row [data-col="matheus"] .btn::before,
+body[data-rota="tortel"] .cmpr .pick-row [data-col="tortel"] .btn::before, body[data-rota="norte"] .cmpr .pick-row [data-col="norte"] .btn::before { content: "✓"; }
+@media (max-width: 640px) {
+  .cmpr { min-width: 720px; font-size: 13px; }
+  .cmpr tbody th { width: 112px; padding: 12px 10px; font-size: 12px; }
+  .cmpr th, .cmpr td { padding: 12px 10px; }
+  .cmpr-h { min-height: 96px; padding: 10px; }
+  .cmpr-h b { font-size: 16px; }
+  .cmpr td.cost b { font-size: 21px; }
+  .cmpr td b { font-size: 16px; }
+}
+.cmpr { table-layout: fixed; }
+.cmpr thead .corner { width: 170px; }
+.cmpr-sec > .small { margin-top: 16px; }
+@media (max-width: 640px) { .cmpr thead .corner { width: 112px; } }
+.cmpr td.bases li { white-space: nowrap; }
+.cmpr-hint { display: none; }
+@media (max-width: 900px) {
+  .cmpr-hint { display: block; font-size: 12px; color: var(--ink2); margin: 22px 0 -18px; text-align: right; }
+  .cmpr .pick-row .btn { padding: 10px 14px; font-size: 13px; }
+}

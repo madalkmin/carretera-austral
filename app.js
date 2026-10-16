@@ -28,7 +28,7 @@
     try { q = new URLSearchParams(location.search).get("rota") || localStorage.getItem("ca-rota"); } catch (err) {}
     aplicarRota(ROTAS[q] ? q : rotaAtual());
   })();
-  $$(".rcard").forEach(function (b) {
+  $$("button[data-set-rota]").forEach(function (b) {
     b.addEventListener("click", function () {
       setRota(b.dataset.setRota);
       var alvo = $("#numeros");
@@ -36,6 +36,14 @@
     });
   });
   if ($("#navRota")) $("#navRota").addEventListener("change", function () { setRota(this.value); });
+  // no celular, a tabela de comparação abre na coluna do roteiro escolhido
+  function colunaAtiva(suave) {
+    var w = $(".cmpr-wrap"), th = w && $("thead th[data-col='" + rotaAtual() + "']", w), c = w && $("thead .corner", w);
+    if (!th || w.scrollWidth <= w.clientWidth + 4) return;
+    w.scrollTo({ left: Math.max(0, th.offsetLeft - c.offsetWidth - 8), behavior: suave ? "smooth" : "auto" });
+  }
+  colunaAtiva(false);
+  document.addEventListener("rota", function () { colunaAtiva(true); });
 
   /* ---------- contagem regressiva ---------- */
   var cd = $("#countdown b");
@@ -371,26 +379,29 @@
     });
     $("#cPas").addEventListener("change", function (ev) { if (ev.target.dataset.p != null) { rs().p[ev.target.dataset.p] = ev.target.checked; guardar(); calcular(); } });
   }
-  function calcular() {
-    if (!CD) return;
+  // custos por pessoa de um roteiro; os campos comuns vêm da tela e os do roteiro (km, balsa, passeios, hospedagem) do que foi salvo para ele
+  function categorias(rid) {
     var r = taxa(), P = Math.max(1, num("cPessoas")), dias = num("cDias");
+    var R0 = ROTAS[rid] || {}, st = salvo.r[rid] || {}, sp = st.p || {}, spv = st.pv || {};
+    var km = st.cKm != null ? +st.cKm || 0 : R0.km || 0;
+    var balsa = st.cBalsa != null ? +st.cBalsa || 0 : (R0.balsa ? 26290 : 0);
     var car = CD.carros[carSel] || { comb: "gas" };
     var precoL = car.comb === "diesel" ? num("cDiesel") : num("cGas");
-    var litros = num("cKm") * num("cCons") / 100;
+    var litros = km * num("cCons") / 100;
     var aluguel = (num("cDiaria") + ($("#cVidro").checked ? 25000 : 0)) * dias / r / P;
     var comb = litros * precoL / r / P;
     var passeios = 0, nPas = 0, faltam = 0;
-    $$("[data-p]").forEach(function (c) {
-      if (!c.checked) return;
+    (R0.passeios || []).forEach(function (x, i) {
+      if (!(sp[i] != null ? sp[i] : i === 0)) return;
       nPas++;
-      var v = +($("[data-pv='" + c.dataset.p + "']").value) || 0;
+      var v = +spv[i] || 0;
       if (!v) faltam++;
       passeios += v;
     });
-    var outros = num("cBalsa") / r / P + num("cSeguro") + num("cChip") + num("cTransf") + num("cOutros");
+    var outros = balsa / r / P + num("cSeguro") + num("cChip") + num("cTransf") + num("cOutros");
     var cats = [
       ["Voo", num("cVoo"), "#5aa9e0"],
-      ["Hospedagem", window.hospPP || 0, "#1a9aa0"],
+      ["Hospedagem", somaHosp[rid] || 0, "#1a9aa0"],
       ["Aluguel do carro", aluguel, "#c8893a"],
       ["Combustível", comb, "#e0a95c", "~" + Math.round(litros) + " L de " + (car.comb === "diesel" ? "diesel" : "gasolina")],
       ["Comida", num("cComida") * dias, "#6aa86f"],
@@ -399,6 +410,25 @@
     ];
     var sub = cats.reduce(function (a, c) { return a + c[1]; }, 0);
     cats.push(["Reserva para imprevistos", sub * num("cReserva") / 100, "#b8c4ca", num("cReserva") + "%"]);
+    return cats;
+  }
+  function comparar() {
+    var parc = salvo.parc || { "Voo": true, "Hospedagem": true }, vals = {};
+    IDS.forEach(function (id) {
+      var cs = categorias(id), t = 0, v = 0;
+      cs.forEach(function (c) { t += c[1]; if (!parc[c[0]]) v += c[1]; });
+      vals[id] = t;
+      $$("[data-custo='" + id + "']").forEach(function (el) { el.textContent = fmtR(Math.round(t)); });
+      $$("[data-vista='" + id + "']").forEach(function (el) { el.textContent = fmtR(Math.round(v)) + " à vista"; });
+    });
+    var bar = IDS.reduce(function (a, id) { return vals[id] < vals[a] ? id : a; }, IDS[0]);
+    $$(".cmpr-bd .cheap").forEach(function (el) { el.hidden = el.closest("th").dataset.col !== bar; });
+  }
+  function calcular() {
+    if (!CD) return;
+    var r = taxa(), P = Math.max(1, num("cPessoas")), dias = num("cDias");
+    var car = CD.carros[carSel] || { comb: "gas" };
+    var cats = categorias(rotaAtual());
     var tot = cats.reduce(function (a, c) { return a + c[1]; }, 0);
     $("#cBar").innerHTML = cats.map(function (c) { return "<i style='flex:" + Math.max(c[1], 0.001) + ";background:" + c[2] + "' title='" + c[0] + "'></i>"; }).join("");
     var parc = salvo.parc || { "Voo": true, "Hospedagem": true }, vPar = 0;
@@ -425,6 +455,7 @@
       if (p < 1) requestAnimationFrame(passo);
     });
     // custo de cada carro (aluguel + combustível) nos botões
+    comparar();
     $$(".cpk").forEach(function (b, i) {
       var c = CD.carros[i], pl = c.comb === "diesel" ? num("cDiesel") : num("cGas");
       var custo = (c.diaria * dias + num("cKm") * c.l100 / 100 * pl) / r / P;
