@@ -328,10 +328,10 @@ footer { text-align: center; padding: 30px 16px 50px; font-size: 13px; color: va
 .car-tabs::-webkit-scrollbar { display: none; }
 .ctab { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px 20px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .16); background: rgba(255, 255, 255, .04); color: rgba(255, 255, 255, .75); font: 600 15px/1.2 var(--sans); cursor: pointer; transition: all .35s var(--ease); }
 .ctab em { font-style: normal; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--glacier); }
-.ctab em.eco { color: #f2c17a; }
+.ctab em.econ { color: #f2c17a; }
 .ctab:hover { background: rgba(255, 255, 255, .1); color: #fff; }
 .ctab.on { background: #fff; color: var(--navy); border-color: #fff; box-shadow: 0 14px 40px -14px rgba(143, 217, 220, .6); }
-.ctab.on em { color: var(--teal); } .ctab.on em.eco { color: var(--rip); }
+.ctab.on em { color: var(--teal); } .ctab.on em.econ { color: var(--rip); }
 .car-stage { position: relative; }
 .car-panel { display: none; grid-template-columns: 1.1fr 1fr; gap: 44px; align-items: start; }
 .car-panel.on { display: grid; animation: carIn .8s var(--ease); }
