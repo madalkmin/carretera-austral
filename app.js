@@ -9,7 +9,7 @@
   if (cd) {
     var dias = Math.ceil((new Date(2027, 2, 1) - new Date()) / 864e5);
     cd.textContent = dias > 0 ? dias : "0";
-    if (dias <= 0) $("#countdown span").textContent = "já estamos na estrada";
+    if (dias <= 0) $("#countdown span").textContent = "a viagem começou!";
   }
 
   /* ---------- capa: título por trás das montanhas ---------- */

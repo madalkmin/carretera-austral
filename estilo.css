@@ -73,7 +73,7 @@ section { position: relative; }
 .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; }
 .countdown { display: flex; align-items: baseline; gap: 10px; }
 .countdown b { font: 800 clamp(40px, 5vw, 64px)/1 var(--serif); }
-.countdown span { font-size: 14px; color: rgba(255, 255, 255, .8); max-width: 9ch; line-height: 1.2; }
+.countdown span { font-size: 14px; color: rgba(255, 255, 255, .8); max-width: 15ch; line-height: 1.2; }
 .scroll-cue { position: absolute; z-index: 4; left: 50%; bottom: 18px; width: 24px; height: 38px; margin-left: -12px; border: 2px solid rgba(255, 255, 255, .6); border-radius: 14px; }
 .scroll-cue span { position: absolute; left: 50%; top: 7px; width: 4px; height: 8px; margin-left: -2px; border-radius: 2px; background: #fff; animation: cue 1.8s infinite; }
 @keyframes cue { 0% { opacity: 0; transform: translateY(0); } 40% { opacity: 1; } 100% { opacity: 0; transform: translateY(14px); } }
