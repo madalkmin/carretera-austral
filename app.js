@@ -13,7 +13,11 @@
     try { localStorage.setItem("ca-rota", id); } catch (err) {}
     try { var u = new URL(location.href); u.searchParams.set("rota", id); history.replaceState(null, "", u); } catch (err) {}
     $$(".rota-nome").forEach(function (el) { el.textContent = ROTAS[id].nome; });
-    var sel = $("#navRota"); if (sel) sel.value = id;
+    $$(".rsel-opt").forEach(function (b) {
+      var on = b.dataset.setRota === id;
+      b.classList.toggle("on", on); b.setAttribute("aria-selected", on);
+      if (on) { $(".rsel-n").textContent = b.dataset.n; $(".rsel-img").style.backgroundImage = "url('img/" + b.dataset.img + ".jpg')"; }
+    });
     $$(".rcard").forEach(function (b) { var on = b.dataset.setRota === id; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
     return id;
   }
@@ -31,11 +35,32 @@
   $$("button[data-set-rota]").forEach(function (b) {
     b.addEventListener("click", function () {
       setRota(b.dataset.setRota);
+      if (b.closest(".rsel")) return;
       var alvo = $("#numeros");
       if (alvo) alvo.scrollIntoView({ behavior: reduz ? "auto" : "smooth" });
     });
   });
-  if ($("#navRota")) $("#navRota").addEventListener("change", function () { setRota(this.value); });
+  // seletor de roteiro da barra de cima
+  var rsel = $("#rsel"), rselBtn = $("#rselBtn"), rselPop = $("#rselPop");
+  function abrirSel(abre) {
+    if (!rsel) return;
+    rselPop.hidden = !abre;
+    rselBtn.setAttribute("aria-expanded", abre);
+    rsel.classList.toggle("open", abre);
+    if (abre) { var at = $(".rsel-opt.on", rselPop) || $(".rsel-opt", rselPop); requestAnimationFrame(function () { at.focus(); }); }
+  }
+  if (rsel) {
+    rselBtn.addEventListener("click", function (ev) { ev.stopPropagation(); abrirSel(rselPop.hidden); });
+    document.addEventListener("click", function (ev) { if (!rselPop.hidden && !rsel.contains(ev.target)) abrirSel(false); });
+    rselPop.addEventListener("click", function (ev) { if (ev.target.closest(".rsel-opt, .rsel-foot")) abrirSel(false); });
+    rsel.addEventListener("keydown", function (ev) {
+      if (rselPop.hidden) return;
+      var ops = $$(".rsel-opt", rselPop), i = ops.indexOf(document.activeElement);
+      if (ev.key === "Escape") { abrirSel(false); rselBtn.focus(); }
+      else if (ev.key === "ArrowDown") { ev.preventDefault(); ops[(i + 1) % ops.length].focus(); }
+      else if (ev.key === "ArrowUp") { ev.preventDefault(); ops[(i - 1 + ops.length) % ops.length].focus(); }
+    });
+  }
   // no celular, a tabela de comparação abre na coluna do roteiro escolhido
   function colunaAtiva(suave) {
     var w = $(".cmpr-wrap"), th = w && $("thead th[data-col='" + rotaAtual() + "']", w), c = w && $("thead .corner", w);
