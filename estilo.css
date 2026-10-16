@@ -733,3 +733,13 @@ body[data-rota="tortel"] .cmpr .pick-row [data-col="tortel"] .btn::before, body[
   .cmpr-hint { display: block; font-size: 12px; color: var(--ink2); margin: 22px 0 -18px; text-align: right; }
   .cmpr .pick-row .btn { padding: 10px 14px; font-size: 13px; }
 }
+
+/* barra de cima ocupando a largura toda */
+.nav-in { width: auto; margin: 0; padding: 0 28px; gap: 22px; }
+.links { flex: 1 1 auto; min-width: 0; gap: 18px; }
+.links > a:first-child { margin-left: auto; }
+.links a { font-size: 13.5px; }
+.links.fade { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent); }
+.links.fade.end { -webkit-mask-image: none; mask-image: none; }
+@media (max-width: 640px) { .nav-in { padding: 0 16px; gap: 14px; } }
+@media (max-width: 1400px) { .nav-rota span { display: none; } .links { gap: 16px; } .nav-in { gap: 18px; } }

@@ -173,6 +173,16 @@
   window.addEventListener("scroll", function () { if (!tick) { tick = true; requestAnimationFrame(rolar); } }, { passive: true });
   rolar();
 
+  // menu: esmaece a borda direita quando ainda há links escondidos
+  var linksBox = $("#navlinks");
+  function bordaMenu() {
+    if (!linksBox) return;
+    var sobra = linksBox.scrollWidth - linksBox.clientWidth;
+    linksBox.classList.toggle("fade", sobra > 2);
+    linksBox.classList.toggle("end", sobra > 2 && linksBox.scrollLeft >= sobra - 2);
+  }
+  if (linksBox) { linksBox.addEventListener("scroll", bordaMenu, { passive: true }); window.addEventListener("resize", bordaMenu); bordaMenu(); }
+
   // link ativo no menu
   var links = $$("#navlinks a");
   if ("IntersectionObserver" in window && links.length) {
