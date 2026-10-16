@@ -241,6 +241,8 @@
       if (anim) { totEl.classList.remove("bump"); void totEl.offsetWidth; totEl.classList.add("bump"); }
     }
     if (listEl) listEl.innerHTML = chips.join("");
+    window.hospPP = tot;
+    document.dispatchEvent(new Event("hosp"));
   }
   $$(".pick").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -252,6 +254,125 @@
     });
   });
   if (spanels.length) { mostrarCidade(0); somar(false); }
+
+  /* ---------- conversor CLP ⇄ R$ ---------- */
+  var fmtR = function (v, dec) { return "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: dec || 0, maximumFractionDigits: dec || 0 }); };
+  var soDig = function (s) { return +(String(s).replace(/\D/g, "")) || 0; };
+  var brNum = function (s) { return +(String(s).replace(/\./g, "").replace(",", ".")) || 0; };
+  var cvRate = $("#cvRate"), cvClp = $("#cvClp"), cvBrl = $("#cvBrl");
+  var taxa = function () { return +(cvRate && cvRate.value) || 195; };
+  function deClp() {
+    var v = soDig(cvClp.value);
+    cvClp.value = v ? v.toLocaleString("pt-BR") : "";
+    cvBrl.value = v ? (v / taxa()).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "";
+  }
+  function deBrl() {
+    var v = brNum(cvBrl.value);
+    cvClp.value = v ? Math.round(v * taxa()).toLocaleString("pt-BR") : "";
+  }
+  if (cvClp) {
+    cvClp.addEventListener("input", deClp);
+    cvBrl.addEventListener("input", deBrl);
+    cvBrl.addEventListener("blur", function () { var v = brNum(cvBrl.value); if (v) cvBrl.value = v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); });
+    cvRate.addEventListener("input", function () { deClp(); calcular(); });
+    $("#cvSwap").addEventListener("click", function () { $("#conv").classList.toggle("rev"); });
+    $$("#cvQuick button").forEach(function (b) { b.addEventListener("click", function () { cvClp.value = b.dataset.v; deClp(); }); });
+    deClp();
+  }
+  var fab = $("#fxFab"), pop = $("#fxPop"), fxClp = $("#fxClp"), fxBrl = $("#fxBrl");
+  if (fab) {
+    var calcSec = $("#calculadora");
+    window.addEventListener("scroll", function () { fab.classList.toggle("show", window.scrollY > window.innerHeight); }, { passive: true });
+    fab.addEventListener("click", function () { pop.hidden = !pop.hidden; if (!pop.hidden) fxClp.focus(); });
+    $("#fxClose").addEventListener("click", function () { pop.hidden = true; });
+    fxClp.addEventListener("input", function () {
+      var v = soDig(fxClp.value);
+      fxClp.value = v ? v.toLocaleString("pt-BR") : "";
+      fxBrl.textContent = fmtR(v / taxa(), 2);
+    });
+  }
+
+  /* ---------- calculadora ---------- */
+  var CD = $("#calcData") ? JSON.parse($("#calcData").textContent) : null;
+  var salvo = {};
+  try { salvo = JSON.parse(localStorage.getItem("ca-calc") || "{}") || {}; } catch (err) { salvo = {}; }
+  var guardar = function () { try { localStorage.setItem("ca-calc", JSON.stringify(salvo)); } catch (err) {} };
+  var num = function (id) { var el = $("#" + id); return el ? +el.value || 0 : 0; };
+  var carSel = 0, ultimo = 0;
+  function calcular() {
+    if (!CD) return;
+    var r = taxa(), P = Math.max(1, num("cPessoas")), dias = num("cDias");
+    var car = CD.carros[carSel] || { comb: "gas" };
+    var precoL = car.comb === "diesel" ? num("cDiesel") : num("cGas");
+    var litros = num("cKm") * num("cCons") / 100;
+    var aluguel = (num("cDiaria") + ($("#cVidro").checked ? 25000 : 0)) * dias / r / P;
+    var comb = litros * precoL / r / P;
+    var passeios = 0, nPas = 0, faltam = 0;
+    $$("[data-p]").forEach(function (c) {
+      if (!c.checked) return;
+      nPas++;
+      var v = +($("[data-pv='" + c.dataset.p + "']").value) || 0;
+      if (!v) faltam++;
+      passeios += v;
+    });
+    var outros = num("cBalsa") / r / P + num("cSeguro") + num("cChip") + num("cTransf") + num("cOutros");
+    var cats = [
+      ["Voo", num("cVoo"), "#0e3b4f"],
+      ["Hospedagem", window.hospPP || 0, "#1a9aa0"],
+      ["Aluguel do carro", aluguel, "#c8893a"],
+      ["Combustível", comb, "#e0a95c", "~" + Math.round(litros) + " L de " + (car.comb === "diesel" ? "diesel" : "gasolina")],
+      ["Comida", num("cComida") * dias, "#6aa86f"],
+      ["Passeios", passeios, "#8d6cc4", nPas ? nPas + (nPas > 1 ? " passeios" : " passeio") + (faltam ? " · preencha " + faltam + " valor" + (faltam > 1 ? "es" : "") : "") : "nenhum marcado"],
+      ["Outros gastos", outros, "#7d8f99", "balsa, seguro viagem, chip, transfer e extras"]
+    ];
+    var sub = cats.reduce(function (a, c) { return a + c[1]; }, 0);
+    cats.push(["Reserva para imprevistos", sub * num("cReserva") / 100, "#b8c4ca", num("cReserva") + "%"]);
+    var tot = cats.reduce(function (a, c) { return a + c[1]; }, 0);
+    $("#cBar").innerHTML = cats.map(function (c) { return "<i style='flex:" + Math.max(c[1], 0.001) + ";background:" + c[2] + "' title='" + c[0] + "'></i>"; }).join("");
+    $("#cList").innerHTML = cats.map(function (c) {
+      return "<li><span class='dot' style='background:" + c[2] + "'></span><div><b>" + c[0] + "</b>" + (c[3] ? "<small>" + c[3] + "</small>" : "") + "</div><em>" + fmtR(Math.round(c[1])) + "</em><s>" + (tot ? Math.round(100 * c[1] / tot) : 0) + "%</s></li>";
+    }).join("");
+    $("#cTotal2").textContent = "Para " + P + (P > 1 ? " pessoas: " : " pessoa: ") + fmtR(Math.round(tot * P)) + " · ≈ CLP " + Math.round(tot * r).toLocaleString("pt-BR") + " por pessoa";
+    $("#cHosp").textContent = fmtR(Math.round(window.hospPP || 0));
+    if ($("#cMini")) $("#cMini").textContent = fmtR(Math.round(tot));
+    var el = $("#cTotal"), de = ultimo, ate = Math.round(tot), t0 = null;
+    ultimo = ate;
+    if (reduz || de === ate) el.textContent = fmtR(ate);
+    else requestAnimationFrame(function passo(t) {
+      if (!t0) t0 = t;
+      var p = Math.min(1, (t - t0) / 600);
+      el.textContent = fmtR(Math.round(de + (ate - de) * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) requestAnimationFrame(passo);
+    });
+    // custo de cada carro (aluguel + combustível) nos botões
+    $$(".cpk").forEach(function (b, i) {
+      var c = CD.carros[i], pl = c.comb === "diesel" ? num("cDiesel") : num("cGas");
+      var custo = (c.diaria * dias + num("cKm") * c.l100 / 100 * pl) / r / P;
+      $("small", b).textContent = fmtR(Math.round(custo)) + " por pessoa com combustível";
+    });
+  }
+  if (CD && $("#cCars")) {
+    $("#cCars").innerHTML = CD.carros.map(function (c, i) {
+      return "<button class='cpk' data-i='" + i + "'><b>" + c.nome + (c.top ? " <em>★</em>" : "") + "</b><span>CLP " + c.diaria.toLocaleString("pt-BR") + "/dia · " + (c.comb === "diesel" ? "diesel" : "gasolina") + " · " + c.l100.toLocaleString("pt-BR") + " L/100 km</span><small></small></button>";
+    }).join("");
+    var escolherCarro = function (i, manual) {
+      carSel = i;
+      $$(".cpk").forEach(function (b, k) { b.classList.toggle("on", k === i); });
+      if (manual) { $("#cDiaria").value = CD.carros[i].diaria; $("#cCons").value = CD.carros[i].l100; salvo.cDiaria = $("#cDiaria").value; salvo.cCons = $("#cCons").value; }
+      salvo.car = i; guardar(); calcular();
+    };
+    $$(".cpk").forEach(function (b, k) { b.addEventListener("click", function () { escolherCarro(k, true); }); });
+    // restaura valores salvos
+    $$(".calc input").forEach(function (inp) {
+      var k = inp.id || (inp.dataset.p != null ? "p" + inp.dataset.p : "pv" + inp.dataset.pv);
+      if (salvo[k] != null) { if (inp.type === "checkbox") inp.checked = salvo[k]; else inp.value = salvo[k]; }
+      inp.addEventListener("input", function () { salvo[k] = inp.type === "checkbox" ? inp.checked : inp.value; guardar(); calcular(); });
+      inp.addEventListener("change", function () { salvo[k] = inp.type === "checkbox" ? inp.checked : inp.value; guardar(); calcular(); });
+    });
+    var ini = salvo.car != null ? salvo.car : Math.max(0, CD.carros.findIndex(function (c) { return c.top; }));
+    escolherCarro(ini, salvo.cDiaria == null);
+    document.addEventListener("hosp", calcular);
+  }
 
   /* ---------- mapa ---------- */
   var R = window.ROTA, mapEl = $("#map");
