@@ -4,6 +4,39 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
+  /* ---------- roteiro escolhido ---------- */
+  var ROTAS = window.ROTAS || {}, IDS = Object.keys(ROTAS);
+  var rotaAtual = function () { return document.body.dataset.rota; };
+  function aplicarRota(id) {
+    if (!ROTAS[id]) id = IDS[0];
+    document.body.dataset.rota = id;
+    try { localStorage.setItem("ca-rota", id); } catch (err) {}
+    try { var u = new URL(location.href); u.searchParams.set("rota", id); history.replaceState(null, "", u); } catch (err) {}
+    $$(".rota-nome").forEach(function (el) { el.textContent = ROTAS[id].nome; });
+    var sel = $("#navRota"); if (sel) sel.value = id;
+    $$(".rcard").forEach(function (b) { var on = b.dataset.setRota === id; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
+    return id;
+  }
+  function setRota(id) {
+    if (id === rotaAtual()) return;
+    id = aplicarRota(id);
+    document.dispatchEvent(new CustomEvent("rota", { detail: id }));
+    window.dispatchEvent(new Event("scroll"));
+  }
+  (function () {
+    var q = null;
+    try { q = new URLSearchParams(location.search).get("rota") || localStorage.getItem("ca-rota"); } catch (err) {}
+    aplicarRota(ROTAS[q] ? q : rotaAtual());
+  })();
+  $$(".rcard").forEach(function (b) {
+    b.addEventListener("click", function () {
+      setRota(b.dataset.setRota);
+      var alvo = $("#numeros");
+      if (alvo) alvo.scrollIntoView({ behavior: reduz ? "auto" : "smooth" });
+    });
+  });
+  if ($("#navRota")) $("#navRota").addEventListener("change", function () { setRota(this.value); });
+
   /* ---------- contagem regressiva ---------- */
   var cd = $("#countdown b");
   if (cd) {
@@ -99,7 +132,7 @@
 
   /* ---------- rolagem: parallax, nav, progresso ---------- */
   var nav = $("#nav"), prog = $("#progress"), hero = $(".hero");
-  var paras = $$(".para-bg"), clip = $(".cliptext");
+  var paras = $$(".para-bg"), clips = $$(".cliptext");
   var tick = false;
   function rolar() {
     tick = false;
@@ -118,15 +151,16 @@
     }
     paras.forEach(function (p) {
       var r = p.parentNode.getBoundingClientRect();
-      if (r.bottom < 0 || r.top > vh) return;
+      if (!r.height || r.bottom < 0 || r.top > vh) return;
       var k = +(p.dataset.speed || 0.25);
       p.style.transform = "translate3d(0," + ((r.top + r.height / 2 - vh / 2) * -k) + "px,0)";
     });
-    if (clip) {
+    clips.forEach(function (clip) {
+      if (!clip.offsetParent) return;
       var rc = clip.getBoundingClientRect();
       var pc = Math.min(1, Math.max(0, 1 - (rc.top + rc.height) / (vh + rc.height)));
       clip.style.setProperty("--bp", (15 + pc * 70) + "%");
-    }
+    });
   }
   window.addEventListener("scroll", function () { if (!tick) { tick = true; requestAnimationFrame(rolar); } }, { passive: true });
   rolar();
@@ -147,12 +181,12 @@
     links.forEach(function (a) { var s = $(a.getAttribute("href")); if (s) secObs.observe(s); });
   }
 
-  /* ---------- carrossel das estradas ---------- */
-  var roads = $("#roads");
-  if (roads) {
+  /* ---------- carrossel das estradas (um por roteiro) ---------- */
+  $$(".roads").forEach(function (roads) {
+    var w = roads.closest(".roads-wrap");
     var passo = function () { var c = $(".road", roads); return c ? c.offsetWidth + 22 : 400; };
-    $("#rPrev").addEventListener("click", function () { roads.scrollBy({ left: -passo(), behavior: "smooth" }); });
-    $("#rNext").addEventListener("click", function () { roads.scrollBy({ left: passo(), behavior: "smooth" }); });
+    $(".rPrev", w).addEventListener("click", function () { roads.scrollBy({ left: -passo(), behavior: "smooth" }); });
+    $(".rNext", w).addEventListener("click", function () { roads.scrollBy({ left: passo(), behavior: "smooth" }); });
     var arrastando = false, x0 = 0, s0 = 0, moveu = false;
     roads.addEventListener("pointerdown", function (ev) {
       if (ev.pointerType !== "mouse") return;
@@ -169,7 +203,7 @@
       arrastando = false; roads.classList.remove("drag");
     });
     roads.addEventListener("click", function (ev) { if (moveu) { ev.preventDefault(); moveu = false; } }, true);
-  }
+  });
 
   /* ---------- lightbox ---------- */
   var lb = $("#lb");
@@ -208,52 +242,59 @@
     new IntersectionObserver(function (en, ob) { if (en[0].isIntersecting) { mostrarCarro(0); ob.disconnect(); } }, { threshold: 0.2 }).observe(stage);
   } else if (cpanels[0]) cpanels[0].classList.add("lit");
 
-  /* ---------- hospedagem: cidades e soma ---------- */
-  var ssteps = $$(".sstep"), spanels = $$(".stay-panel");
-  function mostrarCidade(i) {
-    ssteps.forEach(function (b, k) { b.classList.toggle("on", k === i); b.classList.toggle("done", k < i); b.setAttribute("aria-selected", k === i); });
-    spanels.forEach(function (p, k) { p.classList.toggle("on", k === i); });
-    if (ssteps[i]) ssteps[i].parentNode.scrollTo({ left: ssteps[i].offsetLeft - 40, behavior: "smooth" });
-  }
-  ssteps.forEach(function (b, k) { b.addEventListener("click", function () { mostrarCidade(k); }); });
-  var escolhas = {};
-  try { escolhas = JSON.parse(localStorage.getItem("ca-hosp") || "{}") || {}; } catch (err) { escolhas = {}; }
-  spanels.forEach(function (p, k) {
-    if (!(k in escolhas)) {
-      var rec = $$(".pick", p).filter(function (b) { return b.closest(".stay").classList.contains("rec"); })[0];
-      if (rec) escolhas[k] = +rec.dataset.opt;
+  /* ---------- hospedagem: cidades e soma (escolhas guardadas por roteiro) ---------- */
+  var escolhasR = {};
+  try { escolhasR = JSON.parse(localStorage.getItem("ca-hosp2") || "{}") || {}; } catch (err) { escolhasR = {}; }
+  try { var velho = JSON.parse(localStorage.getItem("ca-hosp") || "null"); if (velho && !escolhasR.anel) escolhasR.anel = velho; } catch (err) {}
+  var somaHosp = {};
+  $$(".stay-wrap").forEach(function (w) {
+    var rid = w.dataset.route, ssteps = $$(".sstep", w), spanels = $$(".stay-panel", w);
+    var escolhas = escolhasR[rid] = escolhasR[rid] || {};
+    function mostrarCidade(i) {
+      ssteps.forEach(function (b, k) { b.classList.toggle("on", k === i); b.classList.toggle("done", k < i); b.setAttribute("aria-selected", k === i); });
+      spanels.forEach(function (p, k) { p.classList.toggle("on", k === i); });
+      if (ssteps[i] && w.offsetParent) ssteps[i].parentNode.scrollTo({ left: ssteps[i].offsetLeft - 40, behavior: "smooth" });
     }
-  });
-  var totEl = $("#ssTotal"), listEl = $("#ssList");
-  function somar(anim) {
-    var tot = 0, chips = [];
+    ssteps.forEach(function (b, k) { b.addEventListener("click", function () { mostrarCidade(k); }); });
     spanels.forEach(function (p, k) {
-      $$(".pick", p).forEach(function (b) {
-        var on = escolhas[k] === +b.dataset.opt;
-        b.setAttribute("aria-pressed", on);
-        b.textContent = on ? "Escolhida" : "Escolher";
-        b.closest(".stay").classList.toggle("picked", on);
-        if (on) { tot += +b.dataset.pp; chips.push("<span><b>" + p.dataset.cidade + "</b> " + b.dataset.nome + "</span>"); }
+      if (!(k in escolhas)) {
+        var rec = $$(".pick", p).filter(function (b) { return b.closest(".stay").classList.contains("rec"); })[0];
+        if (rec) escolhas[k] = +rec.dataset.opt;
+      }
+    });
+    var totEl = $(".ssTotal", w), listEl = $(".ss-list", w);
+    function somar(anim) {
+      var tot = 0, chips = [];
+      spanels.forEach(function (p, k) {
+        $$(".pick", p).forEach(function (b) {
+          var on = escolhas[k] === +b.dataset.opt;
+          b.setAttribute("aria-pressed", on);
+          b.textContent = on ? "Escolhida" : "Escolher";
+          b.closest(".stay").classList.toggle("picked", on);
+          if (on) { tot += +b.dataset.pp; chips.push("<span><b>" + p.dataset.cidade + "</b> " + b.dataset.nome + "</span>"); }
+        });
+      });
+      if (totEl) {
+        totEl.textContent = "R$ " + Math.round(tot).toLocaleString("pt-BR");
+        if (anim) { totEl.classList.remove("bump"); void totEl.offsetWidth; totEl.classList.add("bump"); }
+      }
+      if (listEl) listEl.innerHTML = chips.join("");
+      somaHosp[rid] = tot;
+      if (rid === rotaAtual()) { window.hospPP = tot; document.dispatchEvent(new Event("hosp")); }
+    }
+    $$(".pick", w).forEach(function (b) {
+      b.addEventListener("click", function () {
+        var c = +b.dataset.city, o = +b.dataset.opt;
+        escolhas[c] = escolhas[c] === o ? null : o;
+        try { localStorage.setItem("ca-hosp2", JSON.stringify(escolhasR)); } catch (err) {}
+        somar(true);
+        if (escolhas[c] === o && c < ssteps.length - 1) setTimeout(function () { mostrarCidade(c + 1); }, 650);
       });
     });
-    if (totEl) {
-      totEl.textContent = "R$ " + Math.round(tot).toLocaleString("pt-BR");
-      if (anim) { totEl.classList.remove("bump"); void totEl.offsetWidth; totEl.classList.add("bump"); }
-    }
-    if (listEl) listEl.innerHTML = chips.join("");
-    window.hospPP = tot;
-    document.dispatchEvent(new Event("hosp"));
-  }
-  $$(".pick").forEach(function (b) {
-    b.addEventListener("click", function () {
-      var c = +b.dataset.city, o = +b.dataset.opt;
-      escolhas[c] = escolhas[c] === o ? null : o;
-      try { localStorage.setItem("ca-hosp", JSON.stringify(escolhas)); } catch (err) {}
-      somar(true);
-      if (escolhas[c] === o && c < ssteps.length - 1) setTimeout(function () { mostrarCidade(c + 1); }, 650);
-    });
+    if (spanels.length) { mostrarCidade(0); somar(false); }
   });
-  if (spanels.length) { mostrarCidade(0); somar(false); }
+  window.hospPP = somaHosp[rotaAtual()] || 0;
+  document.addEventListener("rota", function (ev) { window.hospPP = somaHosp[ev.detail] || 0; document.dispatchEvent(new Event("hosp")); });
 
   /* ---------- conversor CLP ⇄ R$ ---------- */
   var fmtR = function (v, dec) { return "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: dec || 0, maximumFractionDigits: dec || 0 }); };
@@ -299,6 +340,37 @@
   var guardar = function () { try { localStorage.setItem("ca-calc", JSON.stringify(salvo)); } catch (err) {} };
   var num = function (id) { var el = $("#" + id); return el ? +el.value || 0 : 0; };
   var carSel = 0, ultimo = 0;
+  var POR_ROTA = { cKm: 1, cBalsa: 1 };
+  salvo.r = salvo.r || {};
+  if (!salvo.r.anel && (salvo.cKm != null || salvo.p0 != null)) {
+    // valores salvos antes de existirem vários roteiros
+    var ra = salvo.r.anel = { p: {}, pv: {} };
+    if (salvo.cKm != null) ra.cKm = salvo.cKm;
+    if (salvo.cBalsa != null) ra.cBalsa = salvo.cBalsa;
+    Object.keys(salvo).forEach(function (k) { var m = /^p(v?)(\d+)$/.exec(k); if (m) ra[m[1] ? "pv" : "p"][m[2]] = salvo[k]; });
+  }
+  var rs = function () { var id = rotaAtual(); return salvo.r[id] = salvo.r[id] || { p: {}, pv: {} }; };
+  function rotaNaCalc() {
+    var R0 = ROTAS[rotaAtual()], st = rs();
+    if (!R0 || !$("#cKm")) return;
+    $("#cKm").value = st.cKm != null ? st.cKm : R0.km;
+    $("#cBalsa").value = st.cBalsa != null ? st.cBalsa : (R0.balsa ? 26290 : 0);
+    st.p = st.p || {}; st.pv = st.pv || {};
+    $("#cPas").innerHTML = R0.passeios.map(function (p, i) {
+      var on = st.p[i] != null ? st.p[i] : i === 0;
+      return "<div class='prow'><label class='chk'><input type='checkbox' data-p='" + i + "'" + (on ? " checked" : "") + "><span>" + p.nome + "</span></label>" +
+        "<div class='inp sm'><em>R$</em><input type='number' inputmode='decimal' min='0' data-pv='" + i + "' placeholder='valor por pessoa' value='" + (st.pv[i] || "") + "'></div><small>" + p.preco + "</small></div>";
+    }).join("");
+  }
+  if ($("#cPas")) {
+    $("#cPas").addEventListener("input", function (ev) {
+      var t = ev.target, st = rs();
+      if (t.dataset.p != null) st.p[t.dataset.p] = t.checked;
+      if (t.dataset.pv != null) st.pv[t.dataset.pv] = t.value;
+      guardar(); calcular();
+    });
+    $("#cPas").addEventListener("change", function (ev) { if (ev.target.dataset.p != null) { rs().p[ev.target.dataset.p] = ev.target.checked; guardar(); calcular(); } });
+  }
   function calcular() {
     if (!CD) return;
     var r = taxa(), P = Math.max(1, num("cPessoas")), dias = num("cDias");
@@ -371,12 +443,15 @@
     };
     $$(".cpk").forEach(function (b, k) { b.addEventListener("click", function () { escolherCarro(k, true); }); });
     // restaura valores salvos
-    $$(".calc input").forEach(function (inp) {
-      var k = inp.id || (inp.dataset.p != null ? "p" + inp.dataset.p : "pv" + inp.dataset.pv);
-      if (salvo[k] != null) { if (inp.type === "checkbox") inp.checked = salvo[k]; else inp.value = salvo[k]; }
-      inp.addEventListener("input", function () { salvo[k] = inp.type === "checkbox" ? inp.checked : inp.value; guardar(); calcular(); });
-      inp.addEventListener("change", function () { salvo[k] = inp.type === "checkbox" ? inp.checked : inp.value; guardar(); calcular(); });
+    rotaNaCalc();
+    $$(".calc input[id]").forEach(function (inp) {
+      var k = inp.id, alvo = function () { return POR_ROTA[k] ? rs() : salvo; };
+      if (!POR_ROTA[k] && salvo[k] != null) { if (inp.type === "checkbox") inp.checked = salvo[k]; else inp.value = salvo[k]; }
+      var gravar = function () { alvo()[k] = inp.type === "checkbox" ? inp.checked : inp.value; guardar(); calcular(); };
+      inp.addEventListener("input", gravar);
+      inp.addEventListener("change", gravar);
     });
+    document.addEventListener("rota", function () { rotaNaCalc(); calcular(); });
     var ini = salvo.car != null ? salvo.car : Math.max(0, CD.carros.findIndex(function (c) { return c.top; }));
     escolherCarro(ini, salvo.cDiaria == null);
     document.addEventListener("hosp", calcular);
@@ -390,8 +465,8 @@
   }
 
   /* ---------- mapa ---------- */
-  var R = window.ROTA, mapEl = $("#map");
-  if (!R || !mapEl || !window.L) return;
+  var mapEl = $("#map");
+  if (!IDS.length || !mapEl || !window.L) return;
   var L = window.L;
   var map = L.map(mapEl, { scrollWheelZoom: false, dragging: !L.Browser.mobile, tap: false });
   var mapa = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
@@ -405,63 +480,85 @@
   L.control.layers({ "Satélite": sat, "Mapa": mapa }, null, { position: "topright" }).addTo(map);
 
   var cor = { A: "#0e3b4f", R: "#c8893a" };
-  var todas = [];
-  R.rota.forEach(function (l) {
-    L.polyline(l.coords, { color: "#fff", weight: 8, opacity: 0.55 }).addTo(map);
-    L.polyline(l.coords, { color: cor[l.piso] || "#0e3b4f", weight: 4.5, opacity: 0.95 }).addTo(map);
-    todas = todas.concat(l.coords);
-  });
-  L.polyline(R.ferry, { color: "#fff", weight: 7, opacity: 0.5 }).addTo(map);
-  L.polyline(R.ferry, { color: "#1a9aa0", weight: 4, dashArray: "8 8" }).addTo(map);
-  var limites = L.latLngBounds(todas);
-  map.fitBounds(limites, { padding: [30, 30] });
+  var camada = L.layerGroup().addTo(map), pins = [], caminho = [], dist = [0], total = 1, marcosPin = [], limites = null, rodando = false;
+  var btn = $("#playRoute");
 
-  var pins = R.pontos.map(function (p) {
-    var ic = L.divIcon({ className: "", html: "<div class='pin'>" + p.n + "</div>", iconSize: [30, 30], iconAnchor: [15, 15] });
-    var m = L.marker([p.lat, p.lon], { icon: ic, title: p.nome }).addTo(map);
-    m.bindPopup("<div class='pop'><img src='img/" + p.img + ".jpg' alt=''><div><i>" + p.meta + "</i><b>" + p.nome + "</b><p>" + p.desc + "</p></div></div>", { maxWidth: 260, minWidth: 260 });
-    return m;
-  });
+  function desenhar(id) {
+    var R = ROTAS[id];
+    if (!R) return;
+    camada.clearLayers();
+    var todas = [];
+    R.rota.forEach(function (l) {
+      L.polyline(l.coords, { color: "#fff", weight: 8, opacity: 0.55 }).addTo(camada);
+      L.polyline(l.coords, { color: cor[l.piso] || "#0e3b4f", weight: 4.5, opacity: 0.95 }).addTo(camada);
+      todas = todas.concat(l.coords);
+    });
+    if (R.ferry) {
+      L.polyline(R.ferry, { color: "#fff", weight: 7, opacity: 0.5 }).addTo(camada);
+      L.polyline(R.ferry, { color: "#1a9aa0", weight: 4, dashArray: "8 8" }).addTo(camada);
+    }
+    R.pontos.forEach(function (p) { todas.push([p.lat, p.lon]); });
+    limites = L.latLngBounds(todas);
+    map.fitBounds(limites, { padding: [30, 30] });
 
-  // percurso animado na ordem da viagem (balsa depois do 2º trecho)
-  var caminho = [];
-  R.rota.forEach(function (l, i) {
-    caminho = caminho.concat(l.coords);
-    if (i === 1) caminho = caminho.concat([R.ferry[0], R.ferry[1]]);
-  });
-  var dist = [0];
-  for (var i = 1; i < caminho.length; i++) {
-    var a = caminho[i - 1], b = caminho[i];
-    dist.push(dist[i - 1] + Math.hypot(a[0] - b[0], (a[1] - b[1]) * 0.7));
+    pins = R.pontos.map(function (p) {
+      var lw = p.n.length > 2 ? 44 : 30;
+      var ic = L.divIcon({ className: "", html: "<div class='pin" + (lw > 30 ? " wide" : "") + "'>" + p.n + "</div>", iconSize: [lw, 30], iconAnchor: [lw / 2, 15] });
+      var m = L.marker([p.lat, p.lon], { icon: ic, title: p.nome }).addTo(camada);
+      m.bindPopup("<div class='pop'><img src='img/" + p.img + ".jpg' alt=''><div><i>" + p.meta + "</i><b>" + p.nome + "</b><p>" + p.desc + "</p></div></div>", { maxWidth: 260, minWidth: 260 });
+      return m;
+    });
+
+    // percurso animado na ordem da viagem (a balsa entra depois do trecho que chega ao porto)
+    var iBalsa = -1;
+    if (R.ferry) {
+      var bd0 = 1e9;
+      R.rota.forEach(function (l, i) { var c = l.coords[l.coords.length - 1], d = Math.hypot(c[0] - R.ferry[0][0], c[1] - R.ferry[0][1]); if (d < bd0) { bd0 = d; iBalsa = i; } });
+    }
+    caminho = [];
+    R.rota.forEach(function (l, i) {
+      caminho = caminho.concat(l.coords);
+      if (i === iBalsa) caminho = caminho.concat([R.ferry[0], R.ferry[1]]);
+    });
+    dist = [0];
+    for (var i = 1; i < caminho.length; i++) {
+      var a = caminho[i - 1], b = caminho[i];
+      dist.push(dist[i - 1] + Math.hypot(a[0] - b[0], (a[1] - b[1]) * 0.7));
+    }
+    total = dist[dist.length - 1] || 1;
+    marcosPin = R.pontos.map(function (p) {
+      var best = 0, bd = 1e9;
+      caminho.forEach(function (c, j) { var d = Math.hypot(c[0] - p.lat, c[1] - p.lon); if (d < bd) { bd = d; best = j; } });
+      return dist[best] / total;
+    });
+    if (btn) btn.textContent = "▶ Percorrer a rota";
   }
-  var total = dist[dist.length - 1];
-  var marcosPin = R.pontos.map(function (p) {
-    var best = 0, bd = 1e9;
-    caminho.forEach(function (c, j) { var d = Math.hypot(c[0] - p.lat, c[1] - p.lon); if (d < bd) { bd = d; best = j; } });
-    return dist[best] / total;
-  });
-  var btn = $("#playRoute"), rodando = false;
+  desenhar(rotaAtual());
+  document.addEventListener("rota", function (ev) { map.closePopup(); desenhar(ev.detail); });
+
   btn.addEventListener("click", function () {
-    if (rodando) return;
+    if (rodando || caminho.length < 2) return;
     rodando = true;
+    var idIni = rotaAtual(), trechoPins = pins, trCam = caminho, trDist = dist, trTot = total, trMarcos = marcosPin;
     btn.textContent = "Percorrendo…";
     map.closePopup();
     map.fitBounds(limites, { padding: [30, 30] });
-    var trilha = L.polyline([], { color: "#fff", weight: 3, opacity: 1 }).addTo(map);
-    var carro = L.marker(caminho[0], { icon: L.divIcon({ className: "", html: "<div class='car'>🚙</div>", iconSize: [26, 26], iconAnchor: [13, 13] }), interactive: false, zIndexOffset: 1000 }).addTo(map);
+    var trilha = L.polyline([], { color: "#fff", weight: 3, opacity: 1 }).addTo(camada);
+    var carro = L.marker(trCam[0], { icon: L.divIcon({ className: "", html: "<div class='car'>🚙</div>", iconSize: [26, 26], iconAnchor: [13, 13] }), interactive: false, zIndexOffset: 1000 }).addTo(camada);
     var dur = reduz ? 1 : 16000, t0 = null, j = 0;
-    pins.forEach(function (m) { var el = m.getElement(); if (el) el.firstChild.classList.remove("hot"); });
+    trechoPins.forEach(function (m) { var el = m.getElement(); if (el) el.firstChild.classList.remove("hot"); });
     function quadro(t) {
+      if (rotaAtual() !== idIni) { rodando = false; return; }
       if (!t0) t0 = t;
-      var p = Math.min(1, (t - t0) / dur), alvo = p * total;
-      while (j < caminho.length - 1 && dist[j + 1] <= alvo) { trilha.addLatLng(caminho[j + 1]); j++; }
-      var seg = dist[j + 1] - dist[j] || 1, f = j < caminho.length - 1 ? (alvo - dist[j]) / seg : 0;
-      var a = caminho[j], b = caminho[Math.min(j + 1, caminho.length - 1)];
+      var p = Math.min(1, (t - t0) / dur), alvo = p * trTot;
+      while (j < trCam.length - 1 && trDist[j + 1] <= alvo) { trilha.addLatLng(trCam[j + 1]); j++; }
+      var seg = trDist[j + 1] - trDist[j] || 1, f = j < trCam.length - 1 ? (alvo - trDist[j]) / seg : 0;
+      var a = trCam[j], b = trCam[Math.min(j + 1, trCam.length - 1)];
       carro.setLatLng([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]);
-      marcosPin.forEach(function (mp, k) { if (p >= mp) { var el = pins[k].getElement(); if (el) el.firstChild.classList.add("hot"); } });
+      trMarcos.forEach(function (mp, k) { if (p >= mp) { var el = trechoPins[k].getElement(); if (el) el.firstChild.classList.add("hot"); } });
       if (p < 1) requestAnimationFrame(quadro);
       else {
-        setTimeout(function () { map.removeLayer(carro); map.removeLayer(trilha); rodando = false; btn.textContent = "▶ Percorrer de novo"; }, 1500);
+        setTimeout(function () { camada.removeLayer(carro); camada.removeLayer(trilha); rodando = false; btn.textContent = "▶ Percorrer de novo"; }, 1500);
       }
     }
     requestAnimationFrame(quadro);

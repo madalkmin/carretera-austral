@@ -124,6 +124,7 @@ section { position: relative; }
 .maplink { font-weight: 600; font-size: 14px; text-decoration: none; }
 .pin { width: 30px; height: 30px; border-radius: 50%; background: var(--navy); color: #fff; font: 700 13px/30px var(--sans); text-align: center; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, .35); transition: transform .3s; }
 .pin.hot { transform: scale(1.35); background: var(--teal); }
+.pin.wide { width: 44px; border-radius: 15px; font-size: 12px; }
 .car { font-size: 24px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .5)); }
 .leaflet-popup-content-wrapper { border-radius: 14px; padding: 0; overflow: hidden; }
 .leaflet-popup-content { margin: 0; width: 260px !important; font: 14px/1.45 var(--sans); }
@@ -628,3 +629,51 @@ footer { text-align: center; padding: 30px 16px 50px; font-size: 13px; color: va
   html { scroll-behavior: auto; }
 }
 [id] { scroll-margin-top: 56px; }
+
+/* ---------- vários roteiros: só aparece o conteúdo do roteiro escolhido ---------- */
+body[data-rota="anel"] [data-route]:not([data-route~="anel"]),
+body[data-rota="matheus"] [data-route]:not([data-route~="matheus"]),
+body[data-rota="tortel"] [data-route]:not([data-route~="tortel"]),
+body[data-rota="norte"] [data-route]:not([data-route~="norte"]) { display: none !important; }
+.rota-nome { color: var(--glacier); font-weight: 600; }
+
+.pick-sec { padding-bottom: 10px; }
+.rcards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 34px; }
+.rcard { position: relative; display: flex; flex-direction: column; text-align: left; padding: 0; border: 0; border-radius: var(--r); overflow: hidden; background: var(--card); color: var(--ink); font: inherit; cursor: pointer;
+  box-shadow: 0 1px 0 var(--line), 0 18px 40px -26px rgba(11, 42, 56, .5); transition: transform .45s var(--ease), box-shadow .45s; outline: 2px solid transparent; outline-offset: 3px; }
+.rcard:hover { transform: translateY(-6px); box-shadow: 0 30px 60px -30px rgba(11, 42, 56, .6); }
+.rcard:focus-visible { outline-color: var(--teal); }
+.rc-img { display: block; height: 170px; background: #0b2a38 center/cover; transition: transform 1.2s var(--ease); }
+.rcard:hover .rc-img { transform: scale(1.06); }
+.rc-body { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 18px 18px 20px; flex: 1; background: var(--card); }
+.rc-tag { font: 600 11px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase; color: var(--teal); }
+.rcard b { font: 600 23px/1.1 var(--serif); }
+.rc-sub { font-size: 14px; line-height: 1.45; color: var(--ink2); }
+.rc-stats { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink2); padding: 10px 0; border-block: 1px solid var(--line); margin-top: 4px; }
+.rc-stats i { font: 600 18px/1 var(--serif); font-style: normal; color: var(--ink); margin-right: 3px; }
+.rc-path { font-size: 12.5px; line-height: 1.5; color: var(--ink2); flex: 1; }
+.rc-cta { align-self: flex-start; margin-top: 6px; font: 600 13px/1 var(--sans); padding: 10px 16px; border-radius: 999px; background: rgba(26, 154, 160, .1); color: var(--teal); transition: background .3s, color .3s; }
+.rcard.on { outline-color: var(--teal); box-shadow: 0 30px 60px -30px rgba(26, 154, 160, .7); }
+.rcard.on .rc-cta { background: var(--teal); color: #fff; }
+.rcard.on .rc-cta::before { content: "✓ "; }
+.rcard.on .rc-tag::after { content: " · escolhido"; }
+
+.nav-rota { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink2); white-space: nowrap; }
+.nav-rota select { font: 600 14px/1 var(--sans); letter-spacing: 0; text-transform: none; color: var(--ink); background: rgba(26, 154, 160, .12); border: 1px solid rgba(26, 154, 160, .35); border-radius: 999px; padding: 8px 30px 8px 14px; cursor: pointer;
+  appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--teal) 50%), linear-gradient(135deg, var(--teal) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+.clima-rota { margin-bottom: 24px; }
+
+@media (max-width: 1080px) { .rcards { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) {
+  .rcards { grid-template-columns: 1fr; gap: 14px; }
+  .rcard { flex-direction: row; }
+  .rc-img { width: 34%; height: auto; min-height: 100%; flex: none; }
+  .rc-body { padding: 14px; gap: 6px; }
+  .rcard b { font-size: 19px; }
+  .rc-sub, .rc-path { display: none; }
+  .rc-stats { gap: 10px; padding: 8px 0; }
+  .rc-stats i { font-size: 15px; }
+  .nav-rota span { display: none; }
+  .nav-rota select { font-size: 13px; padding: 7px 26px 7px 12px; max-width: 175px; }
+}
