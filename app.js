@@ -188,6 +188,71 @@
     document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && !lb.hidden) fechar(); });
   }
 
+  /* ---------- carros: abas, comparativo ---------- */
+  var ctabs = $$(".ctab"), cpanels = $$(".car-panel"), crows = $$(".cmp tbody tr");
+  function mostrarCarro(i, rolar) {
+    ctabs.forEach(function (b, k) { b.classList.toggle("on", k === i); b.setAttribute("aria-selected", k === i); });
+    crows.forEach(function (r, k) { r.classList.toggle("on", k === i); });
+    cpanels.forEach(function (p, k) {
+      p.classList.toggle("on", k === i);
+      p.classList.remove("lit");
+      if (k === i) requestAnimationFrame(function () { requestAnimationFrame(function () { p.classList.add("lit"); }); });
+    });
+    if (ctabs[i] && ctabs[i].parentNode.scrollTo) ctabs[i].parentNode.scrollTo({ left: ctabs[i].offsetLeft - 20, behavior: "smooth" });
+    if (rolar) { var st = $(".car-tabs"); if (st) st.scrollIntoView({ behavior: "smooth", block: "start" }); }
+  }
+  ctabs.forEach(function (b, k) { b.addEventListener("click", function () { mostrarCarro(k); }); });
+  crows.forEach(function (r, k) { r.addEventListener("click", function () { mostrarCarro(k, true); }); });
+  var stage = $(".car-stage");
+  if (stage && "IntersectionObserver" in window) {
+    new IntersectionObserver(function (en, ob) { if (en[0].isIntersecting) { mostrarCarro(0); ob.disconnect(); } }, { threshold: 0.2 }).observe(stage);
+  } else if (cpanels[0]) cpanels[0].classList.add("lit");
+
+  /* ---------- hospedagem: cidades e soma ---------- */
+  var ssteps = $$(".sstep"), spanels = $$(".stay-panel");
+  function mostrarCidade(i) {
+    ssteps.forEach(function (b, k) { b.classList.toggle("on", k === i); b.classList.toggle("done", k < i); b.setAttribute("aria-selected", k === i); });
+    spanels.forEach(function (p, k) { p.classList.toggle("on", k === i); });
+    if (ssteps[i]) ssteps[i].parentNode.scrollTo({ left: ssteps[i].offsetLeft - 40, behavior: "smooth" });
+  }
+  ssteps.forEach(function (b, k) { b.addEventListener("click", function () { mostrarCidade(k); }); });
+  var escolhas = {};
+  try { escolhas = JSON.parse(localStorage.getItem("ca-hosp") || "{}") || {}; } catch (err) { escolhas = {}; }
+  spanels.forEach(function (p, k) {
+    if (!(k in escolhas)) {
+      var rec = $$(".pick", p).filter(function (b) { return b.closest(".stay").classList.contains("rec"); })[0];
+      if (rec) escolhas[k] = +rec.dataset.opt;
+    }
+  });
+  var totEl = $("#ssTotal"), listEl = $("#ssList");
+  function somar(anim) {
+    var tot = 0, chips = [];
+    spanels.forEach(function (p, k) {
+      $$(".pick", p).forEach(function (b) {
+        var on = escolhas[k] === +b.dataset.opt;
+        b.setAttribute("aria-pressed", on);
+        b.textContent = on ? "Escolhida" : "Escolher";
+        b.closest(".stay").classList.toggle("picked", on);
+        if (on) { tot += +b.dataset.pp; chips.push("<span><b>" + p.dataset.cidade + "</b> " + b.dataset.nome + "</span>"); }
+      });
+    });
+    if (totEl) {
+      totEl.textContent = "R$ " + Math.round(tot).toLocaleString("pt-BR");
+      if (anim) { totEl.classList.remove("bump"); void totEl.offsetWidth; totEl.classList.add("bump"); }
+    }
+    if (listEl) listEl.innerHTML = chips.join("");
+  }
+  $$(".pick").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var c = +b.dataset.city, o = +b.dataset.opt;
+      escolhas[c] = escolhas[c] === o ? null : o;
+      try { localStorage.setItem("ca-hosp", JSON.stringify(escolhas)); } catch (err) {}
+      somar(true);
+      if (escolhas[c] === o && c < ssteps.length - 1) setTimeout(function () { mostrarCidade(c + 1); }, 650);
+    });
+  });
+  if (spanels.length) { mostrarCidade(0); somar(false); }
+
   /* ---------- mapa ---------- */
   var R = window.ROTA, mapEl = $("#map");
   if (!R || !mapEl || !window.L) return;
