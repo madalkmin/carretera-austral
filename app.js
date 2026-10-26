@@ -287,9 +287,15 @@
 
   /* ---------- hospedagem: cidades e soma (escolhas guardadas por roteiro) ---------- */
   var escolhasR = {};
-  try { escolhasR = JSON.parse(localStorage.getItem("ca-hosp2") || "{}") || {}; } catch (err) { escolhasR = {}; }
-  try { var velho = JSON.parse(localStorage.getItem("ca-hosp") || "null"); if (velho && !escolhasR.anel) escolhasR.anel = velho; } catch (err) {}
-  var somaHosp = {};
+  // ca-hosp3: as escolhas do Matheus entraram no Anel do Lago como padrão (26/out/2026)
+  try { escolhasR = JSON.parse(localStorage.getItem("ca-hosp3") || "{}") || {}; } catch (err) { escolhasR = {}; }
+  var somaHosp = {}, somas = [];
+  var nPessoas = function () { var el = $("#cPessoas"); return Math.max(1, (el && +el.value) || 3); };
+  document.addEventListener("pessoas", function () {
+    var P = nPessoas();
+    $$(".ppv").forEach(function (b) { b.textContent = "R$ " + Math.round(+b.dataset.total / P).toLocaleString("pt-BR"); });
+    somas.forEach(function (f) { f(false); });
+  });
   $$(".stay-wrap").forEach(function (w) {
     var rid = w.dataset.route, ssteps = $$(".sstep", w), spanels = $$(".stay-panel", w);
     var escolhas = escolhasR[rid] = escolhasR[rid] || {};
@@ -314,7 +320,7 @@
           b.setAttribute("aria-pressed", on);
           b.textContent = on ? "Escolhida" : "Escolher";
           b.closest(".stay").classList.toggle("picked", on);
-          if (on) { tot += +b.dataset.pp; chips.push("<span><b>" + p.dataset.cidade + "</b> " + b.dataset.nome + "</span>"); }
+          if (on) { tot += +b.dataset.total / nPessoas(); chips.push("<span><b>" + p.dataset.cidade + "</b> " + b.dataset.nome + "</span>"); }
         });
       });
       if (totEl) {
@@ -329,11 +335,12 @@
       b.addEventListener("click", function () {
         var c = +b.dataset.city, o = +b.dataset.opt;
         escolhas[c] = escolhas[c] === o ? null : o;
-        try { localStorage.setItem("ca-hosp2", JSON.stringify(escolhasR)); } catch (err) {}
+        try { localStorage.setItem("ca-hosp3", JSON.stringify(escolhasR)); } catch (err) {}
         somar(true);
         if (escolhas[c] === o && c < ssteps.length - 1) setTimeout(function () { mostrarCidade(c + 1); }, 650);
       });
     });
+    somas.push(somar);
     if (spanels.length) { mostrarCidade(0); somar(false); }
   });
   window.hospPP = somaHosp[rotaAtual()] || 0;
@@ -384,7 +391,16 @@
   var num = function (id) { var el = $("#" + id); return el ? +el.value || 0 : 0; };
   var carSel = 0, ultimo = 0;
   var POR_ROTA = { cKm: 1, cBalsa: 1 };
+  // balsa La Tehuelche 2026: carro CLP 21.270 + 2.510 por adulto
+  var balsaPadrao = function () { return 21270 + 2510 * Math.max(1, num("cPessoas") || 3); };
   salvo.r = salvo.r || {};
+  if (!salvo.trio) {
+    // agora são 3 pessoas: descarta a contagem e a balsa salvas para 2
+    delete salvo.cPessoas;
+    Object.keys(salvo.r).forEach(function (k) { delete salvo.r[k].cBalsa; });
+    if (salvo.r.anel) delete salvo.r.anel.cBalsa;
+    salvo.trio = 1;
+  }
   if (!salvo.r.anel && (salvo.cKm != null || salvo.p0 != null)) {
     // valores salvos antes de existirem vários roteiros
     var ra = salvo.r.anel = { p: {}, pv: {} };
@@ -397,7 +413,7 @@
     var R0 = ROTAS[rotaAtual()], st = rs();
     if (!R0 || !$("#cKm")) return;
     $("#cKm").value = st.cKm != null ? st.cKm : R0.km;
-    $("#cBalsa").value = st.cBalsa != null ? st.cBalsa : (R0.balsa ? 26290 : 0);
+    $("#cBalsa").value = st.cBalsa != null ? st.cBalsa : (R0.balsa ? balsaPadrao() : 0);
     st.p = st.p || {}; st.pv = st.pv || {};
     $("#cPas").innerHTML = R0.passeios.map(function (p, i) {
       var on = st.p[i] != null ? st.p[i] : i === 0;
@@ -419,7 +435,7 @@
     var r = taxa(), P = Math.max(1, num("cPessoas")), dias = num("cDias");
     var R0 = ROTAS[rid] || {}, st = salvo.r[rid] || {}, sp = st.p || {}, spv = st.pv || {};
     var km = st.cKm != null ? +st.cKm || 0 : R0.km || 0;
-    var balsa = st.cBalsa != null ? +st.cBalsa || 0 : (R0.balsa ? 26290 : 0);
+    var balsa = st.cBalsa != null ? +st.cBalsa || 0 : (R0.balsa ? balsaPadrao() : 0);
     var car = CD.carros[carSel] || { comb: "gas" };
     var precoL = car.comb === "diesel" ? num("cDiesel") : num("cGas");
     var litros = km * num("cCons") / 100;
@@ -513,11 +529,17 @@
     $$(".calc input[id]").forEach(function (inp) {
       var k = inp.id, alvo = function () { return POR_ROTA[k] ? rs() : salvo; };
       if (!POR_ROTA[k] && salvo[k] != null) { if (inp.type === "checkbox") inp.checked = salvo[k]; else inp.value = salvo[k]; }
-      var gravar = function () { alvo()[k] = inp.type === "checkbox" ? inp.checked : inp.value; guardar(); calcular(); };
+      var gravar = function () {
+        alvo()[k] = inp.type === "checkbox" ? inp.checked : inp.value;
+        if (k === "cPessoas") { rotaNaCalc(); document.dispatchEvent(new Event("pessoas")); }
+        guardar(); calcular();
+      };
       inp.addEventListener("input", gravar);
       inp.addEventListener("change", gravar);
     });
     document.addEventListener("rota", function () { rotaNaCalc(); calcular(); });
+    rotaNaCalc();
+    document.dispatchEvent(new Event("pessoas"));
     var ini = salvo.car != null ? salvo.car : Math.max(0, CD.carros.findIndex(function (c) { return c.top; }));
     escolherCarro(ini, salvo.cDiaria == null);
     document.addEventListener("hosp", calcular);
