@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="estilo.css?v=f57e8d67fb" id="cssMain">
+<link rel="stylesheet" href="estilo.css?v=77bbde0f7b" id="cssMain">
 </head><body data-rota="anel">
 
 <header class="hero" id="topo">
@@ -572,6 +572,9 @@
 <div class="calc">
 <div class="calc-in">
 <a class="co-mini" href="#cOut"><span>Total por pessoa</span><b id="cMini">R$ 0</b></a>
+<div class="ppl reveal"><div class="ppl-h"><b>Quantas pessoas vão?</b><input type="hidden" id="cPessoas" value="3"></div>
+<div class="ppl-b" id="cPpl" role="radiogroup" aria-label="Número de pessoas"><button type="button" role="radio" data-n="1">1</button><button type="button" role="radio" data-n="2">2</button><button type="button" role="radio" data-n="3">3</button><button type="button" role="radio" data-n="4">4</button><button type="button" role="radio" data-n="5">5</button><button type="button" role="radio" data-n="6">6</button><button type="button" role="radio" data-n="7">7</button><button type="button" role="radio" data-n="8">8</button><button type="button" role="radio" data-n="9">9</button><button type="button" role="radio" data-n="10">10</button></div>
+<p class="ppl-n" id="cPplNota"></p></div>
 <fieldset class="cblock reveal"><legend><i>01</i>Carro e combustível</legend>
 <div class="carpick" id="cCars"></div>
 <div class="grid2"><label class='fld'><span>Diária do carro</span><div class='inp'><input type='number' inputmode='decimal' min='0' step='500' id='cDiaria' value='0'><em>CLP</em></div></label><label class='fld'><span>Dias de aluguel</span><div class='inp'><input type='number' inputmode='decimal' min='0' step='1' id='cDias' value='10'><em>dias</em></div></label>
@@ -587,12 +590,12 @@
 <p class="small">Preços reais ida e volta por pessoa, classe econômica, São Paulo (GRU/CGH/VCP) → Balmaceda (BBA), 01/03/2027 a 10/03/2027, buscados no Kayak Brasil em 16/10/2026 (1.711 opções). Baixo: R$ 2.183 = mais barato encontrado, Sky Airline saindo de GRU, 2+ escalas, ~22 h de viagem. Típico: R$ 2.451 = LATAM, 1 escala em Santiago (~9–11 h), tarifa Light SEM bagagem despachada; é a opção mais barata e também a &#x27;melhor&#x27; segundo o Kayak. Por aeroporto (mais barato): GRU R$ 2.183, VCP (Viracopos, mais perto de Limeira) R$ 2.486, CGH R$ 2.514. Alto: R$ 3.700 = faixa onde se concentra o grosso das opções mais caras de 1 escala (R$ 3.645–3.905 no Kayak); há outliers até R$ 7.483 (tarifas flexíveis/combinações caras), desconsiderados. ESTIMATIVA (não verificada): incluir bagagem despachada na LATAM deve somar algo como R$ 300–600 por pessoa ida e volta. Skyscanner e Google Flights bloquearam o acesso automatizado; confirme pelo link. Preços mudam com frequência. <a href="https://www.skyscanner.com.br/transporte/passagens-aereas/sao/bba/270301/270310/?adultsv2=1&amp;cabinclass=economy" target="_blank" rel="noopener">Ver no Skyscanner ›</a></p></fieldset>
 
 <fieldset class="cblock reveal"><legend><i>03</i>Comida e passeios</legend>
-<div class="grid2"><label class='fld'><span>Comida por pessoa, por dia</span><div class='inp'><input type='number' inputmode='decimal' min='0' step='10' id='cComida' value='150'><em>R$</em></div><small>Mercado + um restaurante por dia</small></label><label class='fld'><span>Pessoas</span><div class='inp'><input type='number' inputmode='decimal' min='0' step='1' id='cPessoas' value='3'><em></em></div><small>Divide carro, combustível, balsa e hospedagem</small></label></div>
+<div class="grid2"><label class='fld'><span>Comida por pessoa, por dia</span><div class='inp'><input type='number' inputmode='decimal' min='0' step='10' id='cComida' value='150'><em>R$</em></div><small>Mercado + um restaurante por dia</small></label><label class='fld'><span>Chip ou eSIM, por pessoa</span><div class='inp'><input type='number' inputmode='decimal' min='0' step='10' id='cChip' value='60'><em>R$</em></div></label></div>
 <div class="plist" id="cPas"></div></fieldset>
 
 <fieldset class="cblock reveal"><legend><i>04</i>Outros gastos</legend>
 <div class="grid2"><label class='fld'><span>Balsa (carro + passageiros)</span><div class='inp'><input type='number' inputmode='decimal' min='0' step='10' id='cBalsa' value='28800'><em>CLP</em></div><small>Carro 21.270 + 2.510 por pessoa</small></label><label class='fld'><span>Seguro viagem, por pessoa</span><div class='inp'><input type='number' inputmode='decimal' min='0' step='10' id='cSeguro' value='0'><em>R$</em></div></label>
-<label class='fld'><span>Chip ou eSIM, por pessoa</span><div class='inp'><input type='number' inputmode='decimal' min='0' step='10' id='cChip' value='60'><em>R$</em></div></label><label class='fld'><span>Limeira ⇄ aeroporto, por pessoa</span><div class='inp'><input type='number' inputmode='decimal' min='0' step='10' id='cTransf' value='0'><em>R$</em></div></label>
+<label class='fld'><span>Limeira ⇄ aeroporto, por pessoa</span><div class='inp'><input type='number' inputmode='decimal' min='0' step='10' id='cTransf' value='0'><em>R$</em></div></label>
 <label class='fld'><span>Extras (estacionamento, lembranças…), por pessoa</span><div class='inp'><input type='number' inputmode='decimal' min='0' step='10' id='cOutros' value='200'><em>R$</em></div></label><label class='fld'><span>Reserva para imprevistos</span><div class='inp'><input type='number' inputmode='decimal' min='0' step='1' id='cReserva' value='0'><em>%</em></div></label></div></fieldset>
 </div>
 
@@ -621,7 +624,7 @@
   function tentar(n) {
     if (ok() || n > 3) return;
     var l = document.createElement("link");
-    l.rel = "stylesheet"; l.href = "estilo.css?v=f57e8d67fb&r=" + Date.now();
+    l.rel = "stylesheet"; l.href = "estilo.css?v=77bbde0f7b&r=" + Date.now();
     l.onload = function () { if (!ok()) setTimeout(function () { tentar(n + 1); }, 1500); };
     l.onerror = function () { setTimeout(function () { tentar(n + 1); }, 1500); };
     document.head.appendChild(l);
@@ -630,5 +633,5 @@
   else window.addEventListener("load", function () { setTimeout(function () { tentar(1); }, 300); });
 })();
 </script>
-<script src="app.js?v=d0cfd9aa94"></script>
+<script src="app.js?v=6310deab94"></script>
 </body></html>

@@ -291,9 +291,13 @@
   try { escolhasR = JSON.parse(localStorage.getItem("ca-hosp3") || "{}") || {}; } catch (err) { escolhasR = {}; }
   var somaHosp = {}, somas = [];
   var nPessoas = function () { var el = $("#cPessoas"); return Math.max(1, (el && +el.value) || 3); };
+  // acima de 4 pessoas as casas escolhidas não comportam o grupo: conta uma hospedagem a mais a cada 4 pessoas
+  var unidadesHosp = function () { return Math.ceil(nPessoas() / 4); };
+  // um carro (5 lugares) a cada 5 pessoas
+  window.nCarros = function () { return Math.ceil(nPessoas() / 5); };
   document.addEventListener("pessoas", function () {
     var P = nPessoas();
-    $$(".ppv").forEach(function (b) { b.textContent = "R$ " + Math.round(+b.dataset.total / P).toLocaleString("pt-BR"); });
+    $$(".ppv").forEach(function (b) { b.textContent = "R$ " + Math.round(+b.dataset.total * unidadesHosp() / P).toLocaleString("pt-BR"); });
     somas.forEach(function (f) { f(false); });
   });
   $$(".stay-wrap").forEach(function (w) {
@@ -320,7 +324,7 @@
           b.setAttribute("aria-pressed", on);
           b.textContent = on ? "Escolhida" : "Escolher";
           b.closest(".stay").classList.toggle("picked", on);
-          if (on) { tot += +b.dataset.total / nPessoas(); chips.push("<span><b>" + p.dataset.cidade + "</b> " + b.dataset.nome + "</span>"); }
+          if (on) { tot += +b.dataset.total * unidadesHosp() / nPessoas(); chips.push("<span><b>" + p.dataset.cidade + "</b> " + b.dataset.nome + "</span>"); }
         });
       });
       if (totEl) {
@@ -392,7 +396,7 @@
   var carSel = 0, ultimo = 0;
   var POR_ROTA = { cKm: 1, cBalsa: 1 };
   // balsa La Tehuelche 2026: carro CLP 21.270 + 2.510 por adulto
-  var balsaPadrao = function () { return 21270 + 2510 * Math.max(1, num("cPessoas") || 3); };
+  var balsaPadrao = function () { return 21270 * window.nCarros() + 2510 * Math.max(1, num("cPessoas") || 3); };
   salvo.r = salvo.r || {};
   if (!salvo.trio) {
     // agora são 3 pessoas: descarta a contagem e a balsa salvas para 2
@@ -439,8 +443,9 @@
     var car = CD.carros[carSel] || { comb: "gas" };
     var precoL = car.comb === "diesel" ? num("cDiesel") : num("cGas");
     var litros = km * num("cCons") / 100;
-    var aluguel = (num("cDiaria") + ($("#cVidro").checked ? 25000 : 0)) * dias / r / P;
-    var comb = litros * precoL / r / P;
+    var nc = window.nCarros();
+    var aluguel = (num("cDiaria") + ($("#cVidro").checked ? 25000 : 0)) * dias * nc / r / P;
+    var comb = litros * nc * precoL / r / P;
     var passeios = 0, nPas = 0, faltam = 0;
     (R0.passeios || []).forEach(function (x, i) {
       if (!(sp[i] != null ? sp[i] : i === 0)) return;
@@ -495,6 +500,12 @@
     $("#cParcX").textContent = vPar ? nx + "x de " + fmtR(Math.round(vPar / nx)) + " por pessoa" : "nada parcelado";
     $("#cTotal2").textContent = "Para " + P + (P > 1 ? " pessoas: " : " pessoa: ") + fmtR(Math.round(tot * P)) + " · ≈ CLP " + Math.round(tot * r).toLocaleString("pt-BR") + " por pessoa";
     $("#cHosp").textContent = fmtR(Math.round(window.hospPP || 0));
+    $$("#cPpl button").forEach(function (b) { var on = +b.dataset.n === P; b.classList.toggle("on", on); b.setAttribute("aria-checked", on); });
+    var nc = window.nCarros(), uh = Math.ceil(P / 4);
+    $("#cPplNota").textContent = P === 1 ? "Sozinho: carro, combustível, balsa e hospedagem ficam todos com você." :
+      "Carro, combustível, balsa e hospedagem divididos por " + P + "." + (nc > 1 ? " São " + nc + " carros de 5 lugares." : "") +
+      (uh > 1 ? " A hospedagem conta " + uh + " casas por cidade (estimativa: as escolhidas comportam até 4)." : "") +
+      (P === 4 ? " Com 4, a Tía Yeya e o Depto Huemul (até 3 hóspedes) precisam ser trocados." : "");
     if ($("#cMini")) $("#cMini").textContent = fmtR(Math.round(tot));
     var el = $("#cTotal"), de = ultimo, ate = Math.round(tot), t0 = null;
     ultimo = ate;
@@ -509,7 +520,7 @@
     comparar();
     $$(".cpk").forEach(function (b, i) {
       var c = CD.carros[i], pl = c.comb === "diesel" ? num("cDiesel") : num("cGas");
-      var custo = (c.diaria * dias + num("cKm") * c.l100 / 100 * pl) / r / P;
+      var custo = (c.diaria * dias + num("cKm") * c.l100 / 100 * pl) * window.nCarros() / r / P;
       $("small", b).textContent = fmtR(Math.round(custo)) + " por pessoa com combustível";
     });
   }
@@ -538,6 +549,9 @@
       inp.addEventListener("change", gravar);
     });
     document.addEventListener("rota", function () { rotaNaCalc(); calcular(); });
+    $$("#cPpl button").forEach(function (b) {
+      b.addEventListener("click", function () { var inp = $("#cPessoas"); inp.value = b.dataset.n; inp.dispatchEvent(new Event("input")); });
+    });
     rotaNaCalc();
     document.dispatchEvent(new Event("pessoas"));
     var ini = salvo.car != null ? salvo.car : Math.max(0, CD.carros.findIndex(function (c) { return c.top; }));

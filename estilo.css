@@ -489,6 +489,14 @@ footer { text-align: center; padding: 30px 16px 50px; font-size: 13px; color: va
 .conv .small { color: rgba(255, 255, 255, .75); margin: 0; }
 .calc { display: grid; grid-template-columns: 1fr 400px; gap: 30px; align-items: start; }
 .calc-in { display: grid; gap: 20px; }
+.ppl { padding: 22px 26px; border-radius: var(--r); background: var(--navy); color: #fff; }
+.ppl-h b { font: 600 22px/1.2 var(--serif); }
+.ppl-b { display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; margin: 14px 0 10px; }
+.ppl-b button { aspect-ratio: 1; min-width: 0; border-radius: 12px; border: 1.5px solid rgba(255, 255, 255, .28); background: transparent; color: #fff; font: 700 18px/1 var(--sans); cursor: pointer; transition: all .25s var(--ease); }
+.ppl-b button:hover { background: rgba(255, 255, 255, .12); }
+.ppl-b button.on { background: var(--teal); border-color: var(--teal); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(26, 154, 160, .45); }
+.ppl-n { margin: 0; font-size: 14px; color: rgba(255, 255, 255, .78); }
+@media (max-width: 560px) { .ppl-b { grid-template-columns: repeat(5, 1fr); } .ppl { padding: 18px; } }
 .cblock { border: 0; margin: 0; padding: 26px; border-radius: var(--r); background: #fff; }
 .cblock legend { float: left; width: 100%; display: flex; align-items: center; gap: 12px; font: 600 22px/1.2 var(--serif); margin-bottom: 18px; padding: 0; }
 .cblock legend i { font: 700 12px/1 var(--sans); font-style: normal; padding: 6px 9px; border-radius: 8px; background: var(--navy); color: #fff; }
