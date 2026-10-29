@@ -394,7 +394,7 @@
   var guardar = function () { try { localStorage.setItem("ca-calc", JSON.stringify(salvo)); } catch (err) {} };
   var num = function (id) { var el = $("#" + id); return el ? +el.value || 0 : 0; };
   var carSel = 0, ultimo = 0;
-  var POR_ROTA = { cKm: 1, cBalsa: 1 };
+  var POR_ROTA = { cKm: 1, cBalsa: 1, cDias: 1 };
   // balsa La Tehuelche 2026: carro CLP 21.270 + 2.510 por adulto
   var balsaPadrao = function () { return 21270 * window.nCarros() + 2510 * Math.max(1, num("cPessoas") || 3); };
   salvo.r = salvo.r || {};
@@ -404,6 +404,11 @@
     Object.keys(salvo.r).forEach(function (k) { delete salvo.r[k].cBalsa; });
     if (salvo.r.anel) delete salvo.r.anel.cBalsa;
     salvo.trio = 1;
+  }
+  if (!salvo.doze) {
+    // Anel do Lago passou a ter 12 dias (27/fev → 10/mar): dias agora são por roteiro
+    delete salvo.cDias; delete salvo.cDiaria; delete salvo.cCons; delete salvo.car;
+    salvo.doze = 1;
   }
   if (!salvo.r.anel && (salvo.cKm != null || salvo.p0 != null)) {
     // valores salvos antes de existirem vários roteiros
@@ -417,6 +422,7 @@
     var R0 = ROTAS[rotaAtual()], st = rs();
     if (!R0 || !$("#cKm")) return;
     $("#cKm").value = st.cKm != null ? st.cKm : R0.km;
+    $("#cDias").value = st.cDias != null ? st.cDias : (R0.dias || 10);
     $("#cBalsa").value = st.cBalsa != null ? st.cBalsa : (R0.balsa ? balsaPadrao() : 0);
     st.p = st.p || {}; st.pv = st.pv || {};
     $("#cPas").innerHTML = R0.passeios.map(function (p, i) {
@@ -436,8 +442,9 @@
   }
   // custos por pessoa de um roteiro; os campos comuns vêm da tela e os do roteiro (km, balsa, passeios, hospedagem) do que foi salvo para ele
   function categorias(rid) {
-    var r = taxa(), P = Math.max(1, num("cPessoas")), dias = num("cDias");
+    var r = taxa(), P = Math.max(1, num("cPessoas"));
     var R0 = ROTAS[rid] || {}, st = salvo.r[rid] || {}, sp = st.p || {}, spv = st.pv || {};
+    var dias = st.cDias != null ? +st.cDias || 0 : (R0.dias || 10);
     var km = st.cKm != null ? +st.cKm || 0 : R0.km || 0;
     var balsa = st.cBalsa != null ? +st.cBalsa || 0 : (R0.balsa ? balsaPadrao() : 0);
     var car = CD.carros[carSel] || { comb: "gas" };
