@@ -631,7 +631,10 @@
     limites = L.latLngBounds(todas);
     map.fitBounds(limites, { padding: [30, 30] });
 
-    pins = R.pontos.map(function (p) {
+    var dorme = R.pontos.filter(function (p) { return /noite/.test(p.meta || ""); });
+    if (!dorme.length) dorme = R.pontos;
+    pins = dorme.map(function (p, i) {
+      p = Object.assign({}, p, { n: String(i + 1) });
       var lw = p.n.length > 2 ? 44 : 30;
       var ic = L.divIcon({ className: "", html: "<div class='pin" + (lw > 30 ? " wide" : "") + "'>" + p.n + "</div>", iconSize: [lw, 30], iconAnchor: [lw / 2, 15] });
       var m = L.marker([p.lat, p.lon], { icon: ic, title: p.nome }).addTo(camada);
@@ -656,7 +659,7 @@
       dist.push(dist[i - 1] + Math.hypot(a[0] - b[0], (a[1] - b[1]) * 0.7));
     }
     total = dist[dist.length - 1] || 1;
-    marcosPin = R.pontos.map(function (p) {
+    marcosPin = dorme.map(function (p) {
       var best = 0, bd = 1e9;
       caminho.forEach(function (c, j) { var d = Math.hypot(c[0] - p.lat, c[1] - p.lon); if (d < bd) { bd = d; best = j; } });
       return dist[best] / total;
