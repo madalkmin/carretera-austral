@@ -631,7 +631,7 @@
     limites = L.latLngBounds(todas);
     map.fitBounds(limites, { padding: [30, 30] });
 
-    var dorme = R.pontos.filter(function (p) { return /noite/.test(p.meta || ""); });
+    var dorme = R.pontos.filter(function (p) { return /noite|Chegada/.test(p.meta || ""); });
     if (!dorme.length) dorme = R.pontos;
     pins = dorme.map(function (p, i) {
       p = Object.assign({}, p, { n: String(i + 1) });
