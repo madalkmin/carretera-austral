@@ -577,7 +577,7 @@
   var mapEl = $("#map");
   if (!IDS.length || !mapEl || !window.L) return;
   var L = window.L;
-  var map = L.map(mapEl, { scrollWheelZoom: false, dragging: !L.Browser.mobile, tap: false });
+  var map = L.map(mapEl, { zoomSnap: 0.25, scrollWheelZoom: false, dragging: !L.Browser.mobile, tap: false });
   var mapa = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
     maxZoom: 18, subdomains: "abcd",
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -591,20 +591,41 @@
   var cor = { A: "#0e3b4f", R: "#c8893a" };
   var camada = L.layerGroup().addTo(map), pins = [], caminho = [], dist = [0], total = 1, marcosPin = [], limites = null, rodando = false;
   var btn = $("#playRoute");
+  var modo = "piso";
 
   function desenhar(id) {
     var R = ROTAS[id];
     if (!R) return;
-    camada.clearLayers();
+    camada.clearLayers(); map.invalidateSize();
     var todas = [];
+    function perto(c) { var bd = 1e9, bp = null; R.pontos.forEach(function (p) { var d = Math.hypot(c[0] - p.lat, (c[1] - p.lon) * 0.68); if (d < bd) { bd = d; bp = p; } }); return [bp, bd * 111]; }
+    function hm(min) { min = Math.round(min / 15) * 15; var h = Math.floor(min / 60), m = min % 60; return h ? h + "h" + (m ? (m < 10 ? "0" : "") + m : "") : m + " min"; }
     R.rota.forEach(function (l) {
-      L.polyline(l.coords, { color: "#fff", weight: 8, opacity: 0.55 }).addTo(camada);
-      L.polyline(l.coords, { color: cor[l.piso] || "#0e3b4f", weight: 4.5, opacity: 0.95 }).addTo(camada);
+      var a = perto(l.coords[0])[0], z = perto(l.coords[l.coords.length - 1])[0];
+      var km = l.km || 0, rip = l.piso === "R", min = km / (rip ? 45 : 70) * 60;
+      var tip = "<b>" + (a ? a.nome : "") + " → " + (z ? z.nome : "") + "</b><br>" + (km ? km + " km · ~" + (l.tempo || hm(min)) + " · " : "") + (rip ? "rípio" : "asfalto");
+      L.polyline(l.coords, { color: "#fff", weight: 8, opacity: 0.55, interactive: false }).addTo(camada);
+      if (modo === "sinal") {
+        var run = [], ult = null;
+        l.coords.forEach(function (c) {
+          var d = perto(c)[1], k = d < 8 ? "#1faa59" : (!rip && d < 30 ? "#e9a91c" : "#d93b3b");
+          if (k !== ult && run.length) { run.push(c); L.polyline(run, { color: ult, weight: 5, opacity: 0.95, interactive: false }).addTo(camada); run = []; }
+          run.push(c); ult = k;
+        });
+        if (run.length > 1) L.polyline(run, { color: ult, weight: 5, opacity: 0.95, interactive: false }).addTo(camada);
+      } else {
+        L.polyline(l.coords, { color: cor[l.piso] || "#0e3b4f", weight: 4.5, opacity: 0.95, interactive: false }).addTo(camada);
+      }
+      var hit = L.polyline(l.coords, { color: "#fff", weight: 18, opacity: 0 }).addTo(camada);
+      hit.bindTooltip(tip, { sticky: true, className: "segtip", direction: "top" });
+      hit.on("mouseover", function () { hit.setStyle({ opacity: 0.35 }); });
+      hit.on("mouseout", function () { hit.setStyle({ opacity: 0 }); });
       todas = todas.concat(l.coords);
     });
     if (R.ferry) {
       L.polyline(R.ferry, { color: "#fff", weight: 7, opacity: 0.5 }).addTo(camada);
-      L.polyline(R.ferry, { color: "#1a9aa0", weight: 4, dashArray: "8 8" }).addTo(camada);
+      L.polyline(R.ferry, { color: modo === "sinal" ? "#d93b3b" : "#1a9aa0", weight: 4, dashArray: "8 8" }).addTo(camada)
+        .bindTooltip("<b>Balsa La Tehuelche</b><br>Puerto Ibáñez → Chile Chico · ~2h a 2h30", { sticky: true, className: "segtip", direction: "top" });
     }
     R.pontos.forEach(function (p) { todas.push([p.lat, p.lon]); });
     limites = L.latLngBounds(todas);
@@ -642,7 +663,17 @@
     });
     if (btn) btn.textContent = "▶ Percorrer a rota";
   }
+  document.querySelectorAll(".mtoggle button").forEach(function (bt) {
+    bt.addEventListener("click", function () {
+      modo = bt.dataset.modo;
+      document.querySelectorAll(".mtoggle button").forEach(function (x) { x.classList.toggle("on", x === bt); });
+      document.querySelectorAll(".lg-piso").forEach(function (x) { x.style.display = modo === "piso" ? "" : "none"; });
+      document.querySelectorAll(".lg-sinal").forEach(function (x) { x.style.display = modo === "sinal" ? "" : "none"; });
+      desenhar(rotaAtual());
+    });
+  });
   desenhar(rotaAtual());
+  if (window.IntersectionObserver) { var io = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { io.disconnect(); setTimeout(function () { map.invalidateSize(); if (limites) map.fitBounds(limites, { padding: [30, 30] }); }, 400); } }); io.observe(mapEl); }
   document.addEventListener("rota", function (ev) { map.closePopup(); desenhar(ev.detail); });
 
   btn.addEventListener("click", function () {
